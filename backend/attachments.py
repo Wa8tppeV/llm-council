@@ -164,7 +164,10 @@ async def save_upload(conversation_id: str, uploaded: UploadFile) -> dict:
                     "Okunamayan rakamlari uydurma."
                 )
         else:
-            text = raw.decode("utf-8-sig", errors="replace")
+            try:
+                text = raw.decode("utf-8-sig")
+            except UnicodeDecodeError:
+                text = raw.decode("cp1254", errors="replace")
     except (Exception,) as exc:
         # Never return private file bytes, stack traces or paths to the browser.
         raise HTTPException(status_code=422, detail=f"Dosya acilamadi veya okunamadi: {type(exc).__name__}") from exc
@@ -231,7 +234,7 @@ def context_for_question(conversation_id: str, file_ids: list[str], question: st
         raise HTTPException(status_code=400, detail="Tekrarlanan dosya secimi.")
     items = [_load(conversation_id, file_id) for file_id in file_ids]
     excerpts = []
-    budget = 15000
+    budget = 9500
     for item in items:
         available = max(350, min(8500, budget // max(1, len(items) - len(excerpts))))
         part, shortened = _relevant_excerpt(item["text"], question, available)
