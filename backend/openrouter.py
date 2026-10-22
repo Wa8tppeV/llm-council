@@ -21,6 +21,11 @@ async def query_model(
     Returns:
         Response dict with 'content' and optional 'reasoning_details', or None if failed
     """
+    # Fail closed: never send a paid model request through OpenRouter.
+    if not model.endswith(":free"):
+        print(f"Blocked paid model request: {model}")
+        return None
+
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
