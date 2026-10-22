@@ -6,11 +6,12 @@ processed in memory. Ollama image analysis happens on localhost.
 import base64
 import io
 import json
+import zipfile
 import re
 import uuid
 from pathlib import Path
 
-import fitz
+import pymupdf
 from docx import Document
 from fastapi import HTTPException, UploadFile
 from openpyxl import load_workbook
@@ -67,7 +68,7 @@ async def _vision(image: Image.Image, instruction: str) -> str:
 
 async def _extract_pdf(raw: bytes) -> str:
     segments = []
-    with fitz.open(stream=raw, filetype="pdf") as pdf:
+    with pymupdf.open(stream=raw, filetype="pdf") as pdf:
         total = len(pdf)
         for number, page in enumerate(pdf, 1):
             if number > 80:
@@ -75,7 +76,7 @@ async def _extract_pdf(raw: bytes) -> str:
                 break
             content = page.get_text("text").strip()
             if not content and number <= 2:
-                pix = page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5), alpha=False)
+                pix = page.get_pixmap(matrix=pymupdf.Matrix(1.5, 1.5), alpha=False)
                 with Image.open(io.BytesIO(pix.tobytes("png"))) as img:
                     content = await _vision(img,
                         "Read and accurately describe this scanned document page in Turkish. "
@@ -99,6 +100,7 @@ def _extract_word(raw: bytes) -> str:
 def _extract_excel(raw: bytes) -> str:
     book = load_workbook(io.BytesIO(raw), read_only=True, data_only=True)
     parts = []
+    used = 0
     try:
         for sheet in book.worksheets[:25]:
             parts.append(f"[EXCEL SAYFA: {sheet.title}; satir={sheet.max_row}, sutun={sheet.max_column}]")
@@ -108,12 +110,22 @@ def _extract_excel(raw: bytes) -> str:
                     break
                 cells = [f"{j+1}:{str(value)[:220]}" for j, value in enumerate(row[:32]) if value is not None]
                 if cells:
-                    parts.append(f"Satir {idx} | " + " | ".join(cells))
-                if sum(map(len, parts)) > MAX_TEXT_CHARS:
+                    line = f"Satir {idx} | " + " | ".join(cells)
+                    parts.append(line)
+                    used += len(line) + 1
+                if used > MAX_TEXT_CHARS:
                     return _short("\n".join(parts))
     finally:
         book.close()
     return _short("\n".join(parts))
+
+
+def _validate_office_zip(raw: bytes) -> None:
+    # Avoid ZIP-bomb DOCX/XLSX archives: limit inflated bytes and archive entries.
+    with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+        entries = archive.infolist()
+        if len(entries) > 2000 or sum(e.file_size for e in entries) > 60 * 1024 * 1024:
+            raise ValueError("Office archive exceeds safe extraction limits")
 
 
 async def save_upload(conversation_id: str, uploaded: UploadFile) -> dict:
@@ -136,8 +148,10 @@ async def save_upload(conversation_id: str, uploaded: UploadFile) -> dict:
                 raise ValueError("PDF signature invalid")
             text = await _extract_pdf(raw)
         elif suffix == ".docx":
+            _validate_office_zip(raw)
             text = _extract_word(raw)
         elif suffix == ".xlsx":
+            _validate_office_zip(raw)
             text = _extract_excel(raw)
         elif suffix in IMAGE_EXT:
             with Image.open(io.BytesIO(raw)) as img:
