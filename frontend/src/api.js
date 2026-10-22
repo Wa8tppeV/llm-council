@@ -5,6 +5,30 @@
 const API_BASE = 'http://127.0.0.1:8001';
 
 export const api = {
+  async status() {
+    const response = await fetch(`${API_BASE}/api/status`);
+    if (!response.ok) throw new Error('Ollama bağlantısı kontrol edilemedi');
+    return response.json();
+  },
+
+  async uploadFile(conversationId, file) {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    const response = await fetch(`${API_BASE}/api/conversations/${conversationId}/files`, {
+      method: 'POST',
+      body: form,
+    });
+    if (!response.ok) {
+      let detail = 'Dosya yüklenemedi';
+      try {
+        const data = await response.json();
+        detail = data.detail || detail;
+      } catch { /* non-JSON error */ }
+      throw new Error(detail);
+    }
+    return response.json();
+  },
+
   /**
    * List all conversations.
    */
@@ -73,7 +97,7 @@ export const api = {
    * @param {function} onEvent - Callback function for each event: (eventType, data) => void
    * @returns {Promise<void>}
    */
-  async sendMessageStream(conversationId, content, onEvent) {
+  async sendMessageStream(conversationId, content, fileIds, deep, onEvent) {
     const response = await fetch(
       `${API_BASE}/api/conversations/${conversationId}/message/stream`,
       {
@@ -81,7 +105,7 @@ export const api = {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, file_ids: fileIds, deep }),
       }
     );
 
