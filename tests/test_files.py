@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from unittest.mock import AsyncMock, patch
 
-import fitz
+import pymupdf
 from docx import Document
 from fastapi.testclient import TestClient
 from openpyxl import Workbook
@@ -44,7 +44,7 @@ class FileUploadTests(unittest.TestCase):
         self.assertEqual(self.upload("metraj.csv", b"kalip,100\nbeton,25").status_code, 200)
 
     def test_pdf_docx_xlsx(self):
-        pdf = fitz.open()
+        pdf = pymupdf.open()
         page = pdf.new_page()
         page.insert_text((50, 70), "PDF C30 BETON")
         self.assertEqual(self.upload("rapor.pdf", pdf.tobytes()).status_code, 200)
