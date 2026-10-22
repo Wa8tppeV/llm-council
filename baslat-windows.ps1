@@ -1,40 +1,82 @@
-# LLM Council - Windows local Ollama launcher
+# LLM Council - start free local Ollama application on Windows
 $ErrorActionPreference = "Stop"
 Set-Location -LiteralPath $PSScriptRoot
 
+function Test-LocalUrl([string]$url) {
+    try {
+        $result = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 2
+        return ($result.StatusCode -eq 200)
+    } catch {
+        return $false
+    }
+}
+
 if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
-    throw "uv yuklu degil: https://docs.astral.sh/uv/"
+    throw "uv bulunamadi. Kurulum: https://docs.astral.sh/uv/"
 }
 if (-not (Get-Command npm.cmd -ErrorAction SilentlyContinue)) {
-    throw "Node.js/npm yuklu degil: https://nodejs.org/"
+    throw "Node.js/npm bulunamadi. Kurulum: https://nodejs.org/"
 }
+
 if (-not (Test-Path ".venv")) {
     uv sync
-    if ($LASTEXITCODE -ne 0) { throw "Python kurulumunda hata." }
+    if ($LASTEXITCODE -ne 0) { throw "Python paket kurulumu basarisiz." }
 }
 if (-not (Test-Path "frontend/node_modules")) {
     Push-Location frontend
     try {
         npm.cmd install
-        if ($LASTEXITCODE -ne 0) { throw "Frontend kurulumunda hata." }
+        if ($LASTEXITCODE -ne 0) { throw "Arayuz paket kurulumu basarisiz." }
     } finally {
         Pop-Location
     }
 }
-try {
-    $tags = Invoke-RestMethod "http://127.0.0.1:11434/api/tags" -TimeoutSec 5
-    if (-not $tags.models -or $tags.models.Count -eq 0) {
-        Write-Warning "Ollama calisiyor ancak kurulu model bulunamadi. 'ollama list' ile kontrol edin."
+
+$ollamaUrl = "http://127.0.0.1:11434/api/tags"
+if (-not (Test-LocalUrl $ollamaUrl)) {
+    $ollamaExecutable = Get-Command ollama -ErrorAction SilentlyContinue
+    if (-not $ollamaExecutable) {
+        throw "Ollama bulunamadi. Kurulum: https://ollama.com/"
     }
-} catch {
-    throw "Ollama API su anda calismiyor. Ollama'yi baslatin ve tekrar deneyin."
+    Write-Host "Yerel Ollama baslatiliyor..."
+    Start-Process -FilePath $ollamaExecutable.Source -ArgumentList @("serve") -WindowStyle Hidden
+    $ready = $false
+    for ($i = 0; $i -lt 25; $i++) {
+        Start-Sleep -Seconds 1
+        if (Test-LocalUrl $ollamaUrl) {
+            $ready = $true
+            break
+        }
+    }
+    if (-not $ready) { throw "Ollama servisine baglanilamadi." }
+}
+
+$models = Invoke-RestMethod -Uri $ollamaUrl -TimeoutSec 5
+if (-not $models.models -or $models.models.Count -eq 0) {
+    throw "Ollama uzerinde sohbet modeli bulunamadi. Komut: ollama list"
 }
 
 $repo = $PSScriptRoot.Replace("'", "''")
-$backendCommand = "Set-Location -LiteralPath '$repo'; uv run python -m backend.main"
-$frontendCommand = "Set-Location -LiteralPath '$repo\frontend'; npm.cmd run dev"
-Start-Process powershell.exe -ArgumentList @("-NoExit", "-Command", $backendCommand)
-Start-Process powershell.exe -ArgumentList @("-NoExit", "-Command", $frontendCommand)
-Start-Sleep -Seconds 4
-Start-Process "http://localhost:5173"
-Write-Host "Local LLM Council baslatiliyor: http://localhost:5173"
+if (-not (Test-LocalUrl "http://127.0.0.1:8001/api/status")) {
+    Write-Host "Python API baslatiliyor..."
+    $backendCommand = "Set-Location -LiteralPath '$repo'; uv run python -m backend.main"
+    Start-Process powershell.exe -ArgumentList @("-NoExit", "-Command", $backendCommand)
+}
+if (-not (Test-LocalUrl "http://127.0.0.1:5173/")) {
+    Write-Host "Web arayuzu baslatiliyor..."
+    $frontendCommand = "Set-Location -LiteralPath '$repo\frontend'; npm.cmd run dev -- --host 127.0.0.1 --strictPort"
+    Start-Process powershell.exe -ArgumentList @("-NoExit", "-Command", $frontendCommand)
+}
+
+$ready = $false
+for ($i=0; $i -lt 30; $i++) {
+    if ((Test-LocalUrl "http://127.0.0.1:8001/api/status") -and
+        (Test-LocalUrl "http://127.0.0.1:5173/")) {
+        $ready = $true
+        break
+    }
+    Start-Sleep -Seconds 1
+}
+if (-not $ready) { throw "Yerel uygulama baslatilamadi. Acilan iki terminali kontrol edin." }
+Start-Process "http://127.0.0.1:5173/"
+Write-Host "LLM Council hazir: http://127.0.0.1:5173/"
