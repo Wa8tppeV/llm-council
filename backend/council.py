@@ -5,14 +5,18 @@ from .ollama import query_models_parallel, query_model, get_council_models, olla
 from .config import COUNCIL_MODELS, CHAIRMAN_MODEL
 
 
-async def choose_models(deep: bool = False) -> List[str]:
-    """Return verified installed local models; deep includes large 30B models."""
+async def choose_models(deep: bool = False, gemini: bool = False) -> List[str]:
+    """Select local models, plus optional confirmed free-tier Gemini for this turn."""
     status = await ollama_status()
     if not status.get("connected"):
         return []
-    if deep:
-        return status.get("installed_models", [])
-    return status.get("selected_models", [])
+    local = (status.get("installed_models", []) if deep
+             else status.get("selected_models", []))
+    if gemini:
+        from .gemini import enabled, MODEL_ID
+        if enabled():
+            return [*local, MODEL_ID]
+    return local
 
 
 async def stage1_collect_responses(user_query: str, models: List[str] = None) -> List[Dict[str, Any]]:
