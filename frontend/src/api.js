@@ -5,6 +5,28 @@
 const API_BASE = 'http://127.0.0.1:8001';
 
 export const api = {
+  async configureGemini(apiKey, confirmed) {
+    const response = await fetch(`${API_BASE}/api/gemini/configure`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ api_key: apiKey, free_tier_confirmed: confirmed }),
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.detail || 'Gemini ayarları kaydedilemedi');
+    }
+    return response.json();
+  },
+
+  async disconnectGemini() {
+    const response = await fetch(`${API_BASE}/api/gemini/disconnect`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) throw new Error('Gemini bağlantısı kaldırılamadı');
+    return response.json();
+  },
+
   async status() {
     const response = await fetch(`${API_BASE}/api/status`);
     if (!response.ok) throw new Error('Ollama bağlantısı kontrol edilemedi');
@@ -97,7 +119,7 @@ export const api = {
    * @param {function} onEvent - Callback function for each event: (eventType, data) => void
    * @returns {Promise<void>}
    */
-  async sendMessageStream(conversationId, content, fileIds, deep, onEvent) {
+  async sendMessageStream(conversationId, content, fileIds, deep, gemini, onEvent) {
     const response = await fetch(
       `${API_BASE}/api/conversations/${conversationId}/message/stream`,
       {
@@ -105,7 +127,7 @@ export const api = {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ content, file_ids: fileIds, deep }),
+        body: JSON.stringify({ content, file_ids: fileIds, deep, gemini }),
       }
     );
 
