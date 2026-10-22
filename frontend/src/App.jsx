@@ -45,7 +45,7 @@ function App() {
     } catch (e) { setError(e.message); }
   }
 
-  async function handleSendMessage(content, files = [], deep = false) {
+  async function handleSendMessage(content, files = [], deep = false, gemini = false) {
     if (!currentConversationId || isLoading) return false;
     setIsLoading(true);
     setError('');
@@ -69,7 +69,7 @@ function App() {
       }));
       addedOptimistic = true;
       let streamedError = null;
-      await api.sendMessageStream(currentConversationId, content, fileIds, deep, (type, event) => {
+      await api.sendMessageStream(currentConversationId, content, fileIds, deep, gemini, (type, event) => {
         if (type === 'title_complete') {
           loadConversations();
           return;
@@ -126,6 +126,28 @@ function App() {
     }
   }
 
+  async function handleGeminiConfigure(apiKey, confirmed) {
+    try {
+      await api.configureGemini(apiKey, confirmed);
+      setStatus(await api.status());
+      return true;
+    } catch (e) {
+      setError(e.message);
+      return false;
+    }
+  }
+
+  async function handleGeminiDisconnect() {
+    try {
+      await api.disconnectGemini();
+      setStatus(await api.status());
+      return true;
+    } catch (e) {
+      setError(e.message);
+      return false;
+    }
+  }
+
   return (
     <div className="app">
       <Sidebar
@@ -137,6 +159,8 @@ function App() {
       <ChatInterface
         conversation={currentConversation}
         onSendMessage={handleSendMessage}
+        onGeminiConfigure={handleGeminiConfigure}
+        onGeminiDisconnect={handleGeminiDisconnect}
         isLoading={isLoading}
         status={status}
         error={error}
