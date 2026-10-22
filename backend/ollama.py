@@ -42,6 +42,9 @@ async def get_council_models() -> List[str]:
 async def query_model(model: str, messages: List[Dict[str, str]], timeout: float = 600.0
                       ) -> Optional[Dict[str, Any]]:
     """Non-streaming chat request to local Ollama only."""
+    if model.startswith("gemini/"):
+        from .gemini import query_gemini
+        return await query_gemini(model, messages)
     _loopback_only()
     if not model:
         selected = await get_council_models()
