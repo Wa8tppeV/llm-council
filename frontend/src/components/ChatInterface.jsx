@@ -9,11 +9,18 @@ const FILE_TYPES = '.pdf,.docx,.xlsx,.csv,.txt,.md,.png,.jpg,.jpeg,.webp';
 const IMAGE_EXT = /\.(jpg|jpeg|png|webp)$/i;
 
 export default function ChatInterface({
-  conversation, onSendMessage, isLoading, status, error,
+  conversation, onSendMessage, onGeminiConfigure, onGeminiDisconnect,
+  isLoading, status, error,
 }) {
   const [input, setInput] = useState('');
   const [files, setFiles] = useState([]);
   const [deep, setDeep] = useState(false);
+  const [geminiSelected, setGeminiSelected] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [geminiKey, setGeminiKey] = useState('');
+  const [freeConfirmed, setFreeConfirmed] = useState(false);
+  const [settingsWorking, setSettingsWorking] = useState(false);
+  const [settingsMessage, setSettingsMessage] = useState('');
   const [fileError, setFileError] = useState('');
   const fileRef = useRef(null);
   const endRef = useRef(null);
@@ -42,9 +49,10 @@ export default function ChatInterface({
     event?.preventDefault?.();
     if ((!input.trim() && !files.length) || isLoading) return;
     const question = input.trim() || 'Ekli dosyaları incele ve temel bulguları özetle.';
-    const success = await onSendMessage(question, files, deep);
+    const success = await onSendMessage(question, files, deep, geminiSelected);
     if (success) {
       setInput('');
+      setGeminiSelected(false); // Per-question consent must be renewed.
       setFiles([]);
       if (fileRef.current) fileRef.current.value = '';
     }
@@ -58,16 +66,96 @@ export default function ChatInterface({
   }
 
   const installed = status?.installed_models || [];
-  const activeModels = deep ? installed : (status?.selected_models || []);
+  const activeModels = [
+    ...(deep ? installed : (status?.selected_models || [])),
+    ...(geminiSelected && status?.gemini?.configured ? [status.gemini.model] : []),
+  ];
+
+  async function saveGemini(event) {
+    event.preventDefault();
+    setSettingsWorking(true);
+    setSettingsMessage('');
+    try {
+      const success = await onGeminiConfigure(geminiKey, freeConfirmed);
+      if (success) {
+        setGeminiKey('');
+        setSettingsOpen(false);
+        setSettingsMessage('Gemini anahtarı yalnızca bilgisayarında saklandı.');
+      }
+    } finally {
+      setSettingsWorking(false);
+    }
+  }
+
+  async function removeGemini() {
+    setSettingsWorking(true);
+    try {
+      const success = await onGeminiDisconnect();
+      if (success) {
+        setGeminiSelected(false);
+        setGeminiKey('');
+        setFreeConfirmed(false);
+        setSettingsOpen(false);
+        setSettingsMessage('Gemini bağlantısı kaldırıldı.');
+      }
+    } finally {
+      setSettingsWorking(false);
+    }
+  }
   return (
     <div className="chat-interface">
       <header className="council-header">
-        <div><strong>Yerel Yapay Zekâ Konseyi</strong><span>Ücretsiz · Ollama · Dosya analizi</span></div>
+        <div><strong>Yapay Zekâ Konseyi</strong><span>Ollama · İsteğe bağlı Gemini · Dosya analizi</span></div>
+        <button type="button" className="gemini-settings-button"
+          onClick={() => setSettingsOpen(value => !value)}>
+          {status?.gemini?.configured ? '✓ Gemini bağlı · Ayarlar' : 'Gemini bağla'}
+        </button>
         <div className={'connection-status ' + (status?.connected ? 'connected' : 'disconnected')}>
           {status?.connected ? '● Yerel bağlantı açık' : '○ Ollama bağlantısını kontrol et'}
         </div>
       </header>
 
+      {settingsOpen && (
+        <form className="gemini-settings" onSubmit={saveGemini}>
+          <strong>Google Gemini 2.5 Flash — ücretsiz API katmanı</strong>
+          <p>Önce <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noreferrer">
+            Google AI Studio API Keys</a> sayfasında <strong>Free Tier</strong>
+            bir proje oluştur. Projede faturalandırma bağlı olmamalı.
+            Anahtarın bu bilgisayarda saklanır; GitHub'a gönderilmez.</p>
+          {!status?.gemini?.configured && (
+            <>
+              <input className="gemini-key-input" type="password" autoComplete="off"
+                value={geminiKey} onChange={e => setGeminiKey(e.target.value)}
+                placeholder="Google AI Studio API anahtarını buraya yapıştır" />
+              <label className="deep-check">
+                <input type="checkbox" checked={freeConfirmed}
+                  onChange={e => setFreeConfirmed(e.target.checked)} />
+                Bu anahtarın projesi Free Tier ve faturalandırma devre dışı.
+              </label>
+              <button type="submit" className="gemini-save" disabled={!geminiKey.trim() || !freeConfirmed || settingsWorking}>
+                Ücretsiz Gemini bağlantısını kaydet
+              </button>
+            </>
+          )}
+          {status?.gemini?.configured && (
+            <div className="gemini-connection-info">
+              <span>✓ Hazır — bugün {status.gemini.used_today}/{status.gemini.daily_cap} API isteği</span>
+              <button type="button" onClick={removeGemini} disabled={settingsWorking}>
+                Bağlantıyı kaldır ve anahtarı sil
+              </button>
+            </div>
+          )}
+          <p className="local-warning">
+            Önemli: Ücretsiz model, ücretli/billing bağlı bir projede ücret doğurabilir.
+            Uygulama projendeki faturalandırmayı doğrulayamaz. Gemini seçildiğinde
+            soru ve yüklediğin dosyalardan seçilen içerik Google'a gider.
+          </p>
+          <button type="button" className="gemini-cancel" onClick={() => setSettingsOpen(false)}>
+            Kapat
+          </button>
+        </form>
+      )}
+      {settingsMessage && <div className="gemini-feedback">{settingsMessage}</div>}
       <div className="messages-container">
         {!conversation ? (
           <div className="empty-state">
@@ -151,6 +239,12 @@ export default function ChatInterface({
                   onChange={e => setDeep(e.target.checked)} />
                 Tüm modellerle derin konsey (30B yavaş)
               </label>
+              <label className="deep-check" title="Buluta belge gönderimi yalnızca bu soruya mahsustur.">
+                <input type="checkbox" checked={geminiSelected}
+                  disabled={isLoading || !status?.gemini?.configured || status?.gemini?.remaining_today === 0}
+                  onChange={e => setGeminiSelected(e.target.checked)} />
+                Gemini'yi de kat (Google'a veri gönderir)
+              </label>
               <button type="submit" className="send-button"
                 disabled={(!input.trim() && !files.length) || isLoading}>
                 {isLoading ? 'İşleniyor…' : 'Konseye Sor'}
@@ -158,7 +252,7 @@ export default function ChatInterface({
             </div>
             {(error || fileError) && <p role="alert" className="council-error">{error || fileError}</p>}
             <p className="local-warning">
-              Dosyalar bu bilgisayarda işlenir. PDF taramaları ve görsel ölçüler mutlaka doğrulanmalıdır.
+Gemini kutusu kapalıyken dosyalar bilgisayarında işlenir. Gemini kutusu açıksa seçilen içerik Google’a gönderilir.
               Destek: PDF, DOCX, XLSX, CSV, TXT, PNG/JPG/WEBP. Dosya başına 12 MB, en çok 6 dosya.
             </p>
           </div>
