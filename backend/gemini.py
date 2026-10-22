@@ -109,7 +109,8 @@ async def query_gemini(model: str, messages: list[dict]) -> dict | None:
     system = "\n".join(str(m.get("content") or "") for m in messages if m.get("role") == "system")
     prompt = "\n\n".join(str(m.get("content") or "") for m in messages if m.get("role") != "system")
     # Never send entire very large documents to a cloud provider by accident.
-    prompt = prompt[:14000]
+    if len(prompt) > 14000:
+        prompt = prompt[:13800] + "\n[NOT: Gemini'ye gonderilen metin boyut siniri nedeniyle kisaltildi.]"
     payload = {
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
         "generationConfig": {"maxOutputTokens": 768, "thinkingConfig": {"thinkingBudget": 0}},
