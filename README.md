@@ -76,7 +76,7 @@ Windows için otomatik başlatıcı da eklendi. Gerekli kurulumları yaptıktan 
 powershell -NoProfile -File .\baslat-windows.ps1
 ~~~
 
-Başlatıcı Ollama kurulumunu veya modelleri otomatik indirmez; yerel uygulamanın iki terminalini açar.
+Başlatıcı Ollama servisini gerekirse otomatik açar, açık olan servisleri tekrar başlatmaz. Yeni model veya başka yazılım otomatik indirilmez.
 
 ## İsteğe bağlı: modelleri elle seç
 
