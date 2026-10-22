@@ -1,115 +1,103 @@
-# LLM Council
+# LLM Council — ücretsiz yerel Ollama sürümü
 
-![llmcouncil](header.jpg)
+Bu depo Andrej Karpathy'nin [LLM Council](https://github.com/karpathy/llm-council) uygulamasından uyarlanmıştır. **Bu sürümde OpenRouter, ücretli API anahtarı veya otomatik kredi yüklemesi kullanılmaz.** Bütün model istekleri bilgisayarınızdaki Ollama API'sine (localhost) gönderilir.
 
-The idea of this repo is that instead of asking a question to your favorite LLM provider (e.g. OpenAI GPT 5.1, Google Gemini 3.0 Pro, Anthropic Claude Sonnet 4.5, xAI Grok 4, eg.c), you can group them into your "LLM Council". This repo is a simple, local web app that essentially looks like ChatGPT except it uses OpenRouter to send your query to multiple LLMs, it then asks them to review and rank each other's work, and finally a Chairman LLM produces the final response.
+## Çalışma mantığı
 
-In a bit more detail, here is what happens when you submit a query:
+1. Bilgisayarda mevcut en fazla **iki sohbet modeli** soruyu ayrı ayrı yanıtlar.
+2. Modeller birbirlerinin yanıtlarını karşılaştırır ve sıralar.
+3. Yerel bir başkan modeli son yanıtı hazırlar.
 
-1. **Stage 1: First opinions**. The user query is given to all LLMs individually, and the responses are collected. The individual responses are shown in a "tab view", so that the user can inspect them all one by one.
-2. **Stage 2: Review**. Each individual LLM is given the responses of the other LLMs. Under the hood, the LLM identities are anonymized so that the LLM can't play favorites when judging their outputs. The LLM is asked to rank them in accuracy and insight.
-3. **Stage 3: Final response**. The designated Chairman of the LLM Council takes all of the model's responses and compiles them into a single final answer that is presented to the user.
+Varsayılan olarak yüklü modeller otomatik seçilir; herhangi bir model otomatik olarak indirilmez. Yerel yapay zekâlar özellikle CPU üzerinde yavaş çalışabilir. İki farklı model kurulu değilse konsey tek modelle de çalışabilir, ancak görüş çeşitliliği azalır.
 
-## Vibe Code Alert
+## Gerekenler (Windows)
 
-This project was 99% vibe coded as a fun Saturday hack because I wanted to explore and evaluate a number of LLMs side by side in the process of [reading books together with LLMs](https://x.com/karpathy/status/1990577951671509438). It's nice and useful to see multiple responses side by side, and also the cross-opinions of all LLMs on each other's outputs. I'm not going to support it in any way, it's provided here as is for other people's inspiration and I don't intend to improve it. Code is ephemeral now and libraries are over, ask your LLM to change it in whatever way you like.
+- Ollama (https://ollama.com/) — kurulu ve açık
+- Git (https://git-scm.com/downloads/win)
+- Python 3.10+ ve uv (https://docs.astral.sh/uv/)
+- Node.js LTS (https://nodejs.org/)
 
-## Setup
+PowerShell'de şunları kontrol edin:
 
-### 1. Install Dependencies
+~~~powershell
+ollama --version
+ollama list
+git --version
+uv --version
+node --version
+npm.cmd --version
+~~~
 
-The project uses [uv](https://docs.astral.sh/uv/) for project management.
+Ollama model listesi boşsa bilgisayarınızın RAM/ekran kartına uygun bir sohbet modeli indirmeniz gerekir. Örneğin küçük bir başlangıç modeli:
 
-**Backend:**
-```bash
-uv sync
-```
+~~~powershell
+ollama pull llama3.2:3b
+~~~
 
-**Frontend:**
-```bash
-cd frontend
-npm install
-cd ..
-```
+Bu komut internetten bir defalık ücretsiz model indirir. Mevcut modelleriniz varsa atlayın.
 
-### 2. Configure API Key
+## Projeyi kur
 
-Create a `.env` file in the project root:
-
-```bash
-OPENROUTER_API_KEY=sk-or-v1-...
-```
-
-Get a free API key at [openrouter.ai/keys](https://openrouter.ai/keys). **No credit purchase or automatic top-up is required for the default free models.** Free endpoints have request limits and availability may change. Do not commit your `.env` file (it is already ignored by `.gitignore`).
-
-### 3. Configure Models (Optional)
-
-Edit `backend/config.py` to customize the council:
-
-```python
-COUNCIL_MODELS = [
-    "nvidia/nemotron-3-ultra-550b-a55b:free",
-    "nvidia/nemotron-3-super-120b-a12b:free",
-    "cohere/north-mini-code:free",
-]
-
-CHAIRMAN_MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free"
-```
-
-
-### Free-only mode
-
-This fork uses only OpenRouter model IDs ending in `:free` for **all** requests, including automatic conversation titles. The API client blocks calls to non-free model IDs, preventing accidental paid-model usage. A free API key is still required; **OpenRouter free-tier limits apply** (currently 50 requests per day, subject to change). Each council prompt normally sends multiple requests, so the daily quota may be used up after a few prompts. Free endpoints may log the content of your requests; **do not send confidential project documents or personal information**.
-
-**Windows PowerShell:** After installing Git, Node.js and [uv](https://docs.astral.sh/uv/), run from the cloned repository:
-
-```powershell
+~~~powershell
+git clone https://github.com/Wa8tppeV/llm-council.git
+cd llm-council
 uv sync
 cd frontend
 npm.cmd install
 cd ..
-```
+~~~
 
-Create `.env` as described above. Open two PowerShell windows in the project directory:
+Projeyi önceden bilgisayarınıza indirdiyseniz aynı klasörde git pull çalıştırın. Yerel kod değişikliklerinizi önce yedekleyin.
 
-```powershell
-# Window 1
+## Çalıştırma
+
+Proje klasöründe iki ayrı PowerShell açın:
+
+**Pencere 1 (backend)**
+
+~~~powershell
 uv run python -m backend.main
-```
+~~~
 
-```powershell
-# Window 2
+**Pencere 2 (frontend)**
+
+~~~powershell
 cd frontend
 npm.cmd run dev
-```
+~~~
 
-Browse to http://localhost:5173. This is a local web app, not a native ChatGPT plugin.
+Tarayıcıda http://localhost:5173 adresini açın.
 
-## Running the Application
+Bağlantı ve model durumunu görmek için http://localhost:8001/api/status adresini ziyaret edin. Yanıtta connected: true ve selected_models içerisinde en az bir model adı olmalıdır.
 
-**Option 1: Use the start script**
-```bash
-./start.sh
-```
+Windows için otomatik başlatıcı da eklendi. Gerekli kurulumları yaptıktan sonra proje klasöründe şu komutu çalıştırabilirsiniz:
 
-**Option 2: Run manually**
+~~~powershell
+powershell -NoProfile -File .\baslat-windows.ps1
+~~~
 
-Terminal 1 (Backend):
-```bash
-uv run python -m backend.main
-```
+Başlatıcı Ollama kurulumunu veya modelleri otomatik indirmez; yerel uygulamanın iki terminalini açar.
 
-Terminal 2 (Frontend):
-```bash
-cd frontend
-npm run dev
-```
+## İsteğe bağlı: modelleri elle seç
 
-Then open http://localhost:5173 in your browser.
+.env dosyası **zorunlu değildir**. Otomatik seçim ilk iki yerel sohbet modelini kullanır. İsterseniz proje kökünde .env oluşturarak şunları yazın:
 
-## Tech Stack
+~~~dotenv
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODELS=llama3.2:3b,gemma3:4b
+OLLAMA_CHAIRMAN_MODEL=llama3.2:3b
+OLLAMA_MAX_OUTPUT_TOKENS=768
+~~~
 
-- **Backend:** FastAPI (Python 3.10+), async httpx, OpenRouter API
-- **Frontend:** React + Vite, react-markdown for rendering
-- **Storage:** JSON files in `data/conversations/`
-- **Package Management:** uv for Python, npm for JavaScript
+**Model adları örnektir.** Bilgisayarda kurulu gerçek model adlarını ollama list ile öğrenin. Dosya GitHub'a yüklenmemelidir.
+
+## Güvenlik ve maliyet
+
+- Tüm istekler localhost üzerindeki Ollama servisine gider.
+- Bu projede OpenRouter/ücretli sağlayıcı istekleri yoktur, API anahtarı istenmez.
+- Bulut olarak işaretlenmiş ve embedding/reranking modelleri konsey listesinden filtrelenir.
+- Python backend sadece 127.0.0.1:8001 adresini dinler.
+- Sohbet geçmişi yerel data/conversations klasörüne yazılır.
+- İndirilen yerel modellerle sorgulama için model başına ücret veya günlük API kotası yoktur. Donanım, elektrik ve ilk indirme için internet tüketimi ayrı konulardır.
+
+Orijinal kaynak: https://github.com/karpathy/llm-council
