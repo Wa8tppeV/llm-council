@@ -1,7 +1,7 @@
 """3-stage LLM Council orchestration."""
 
 from typing import List, Dict, Any, Tuple
-from .openrouter import query_models_parallel, query_model
+from .ollama import query_models_parallel, query_model, get_council_models
 from .config import COUNCIL_MODELS, CHAIRMAN_MODEL
 
 
@@ -158,18 +158,20 @@ Provide a clear, well-reasoned final answer that represents the council's collec
 
     messages = [{"role": "user", "content": chairman_prompt}]
 
-    # Query the chairman model
-    response = await query_model(CHAIRMAN_MODEL, messages)
+    # Select a locally installed chairman when none is explicitly configured.
+    local_models = await get_council_models()
+    chairman = CHAIRMAN_MODEL or (local_models[0] if local_models else "")
+    response = await query_model(chairman, messages)
 
     if response is None:
         # Fallback if chairman fails
         return {
-            "model": CHAIRMAN_MODEL,
+            "model": chairman,
             "response": "Error: Unable to generate final synthesis."
         }
 
     return {
-        "model": CHAIRMAN_MODEL,
+        "model": chairman,
         "response": response.get('content', '')
     }
 
@@ -274,8 +276,8 @@ Title:"""
 
     messages = [{"role": "user", "content": title_prompt}]
 
-    # Use the free chairman model for title generation (no paid requests)
-    response = await query_model(CHAIRMAN_MODEL, messages, timeout=30.0)
+    # Use the installed local Ollama model to generate titles without paid APIs
+    response = await query_model(CHAIRMAN_MODEL, messages, timeout=180.0)
 
     if response is None:
         # Fallback to a generic title
@@ -310,7 +312,7 @@ async def run_full_council(user_query: str) -> Tuple[List, List, Dict, Dict]:
     if not stage1_results:
         return [], [], {
             "model": "error",
-            "response": "All models failed to respond. Please try again."
+            "response": "No Ollama reply. Check that Ollama is running and chat models are installed at http://localhost:8001/api/status"
         }, {}
 
     # Stage 2: Collect rankings
