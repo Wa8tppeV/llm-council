@@ -153,7 +153,7 @@ katılabilir. **Varsayılan kapalıdır**, API anahtarı yoksa normal yerel kons
    **Free Tier / ücretsiz katman** projesi oluşturun. Projede faturalandırma
    bağlı olmadığını doğrulayın; ödeme veya ücretli katmana geçiş yapmayın.
 2. Yerel uygulamanın üstündeki **Gemini bağla** düğmesini açın.
-3. API anahtarını yalnızca bilgisayarınızdaki şifreli giriş alanına yapıştırın;
+3. API anahtarını yalnızca bilgisayarınızdaki karakterleri gizleyen giriş alanına yapıştırın;
    projenizin ücretsiz olduğunu onaylayıp **Kaydet** düğmesine basın.
 4. Belirli bir soruda Gemini'yi dahil etmek istiyorsanız sohbet alanındaki
    **Gemini'yi de kat (Google'a veri gönderir)** kutusunu açın.
