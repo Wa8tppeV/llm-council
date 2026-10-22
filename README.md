@@ -101,3 +101,43 @@ OLLAMA_MAX_OUTPUT_TOKENS=768
 - İndirilen yerel modellerle sorgulama için model başına ücret veya günlük API kotası yoktur. Donanım, elektrik ve ilk indirme için internet tüketimi ayrı konulardır.
 
 Orijinal kaynak: https://github.com/karpathy/llm-council
+
+
+## Dosya yükleme ve ortak analiz
+
+Sohbet alanında Dosya Ekle veya sürükle-bırak kullanın. PDF, DOCX, XLSX,
+CSV, TXT, Markdown ve PNG/JPG/WEBP görselleri desteklenir; en fazla 6 dosya,
+dosya başına 12 MB. Çıkarılan metin yerel data/attachments klasöründe saklanır.
+Ham yüklenen belgeler kalıcı olarak saklanmaz.
+
+- PDF: ilk 80 sayfanın seçilebilir metnini okur; taranmış metinsiz ilk iki
+  sayfa görsel modelle yorumlanır, diğer taranmış sayfalar okunamadı işaretlenir.
+- Excel: ilk 25 sayfa, her sayfada 1200 satır ve 32 sütunun önceden hesaplanmış
+  değerlerini okur. Formül hesaplamaz.
+- Word: paragraf ve tabloları işler; bütün gömülü şekilleri okumaz.
+- Fotoğraf: yerel gemma3:4b görsel modeli açıklama üretir, diğer modeller
+  bu açıklamayı değerlendirir. Diğer modeller fotoğrafı doğrudan görmez.
+- Büyük belgelerde soru ile ilgili bölümler seçilir; tüm dosya bütünüyle
+  analiz edilmiş gibi gösterilmez.
+- DWG/DXF henüz desteklenmez; teknik metrajda CAD ayrıştırma gerekir.
+
+### Normal ve derin konsey
+
+Normal konsey: qwen3:8b, qwen2.5-coder:7b, gemma3:4b. Başkan: qwen3:8b.
+Kendi .env dosyanızda modelleri seçebilirsiniz. Tüm modellerle derin konsey
+seçildiğinde kurulu qwen3-coder:30b gibi büyük modeller de katılır. Bunlar
+sırayla çalışır ve 8 GB VRAM üzerinde daha yavaş olabilir. Yerel gemma3:4b
+modelini eklemek için: ollama pull gemma3:4b
+
+### Kontroller
+
+Windows proje klasöründe Python testleri:
+    uv run python -m unittest discover -s tests -v
+
+Arayüzü derlemek ve bağımlılıkları taramak:
+    cd frontend
+    npm.cmd run build
+    npm.cmd audit
+
+Birden fazla modelin uzlaşması teknik doğruluk garantisi değildir; özellikle
+statik, metraj, şartname ve mevzuatta kaynak veriler doğrulanmalıdır.
