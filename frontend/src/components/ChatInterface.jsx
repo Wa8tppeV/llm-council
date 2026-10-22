@@ -149,6 +149,7 @@ export default function ChatInterface({
             Önemli: Ücretsiz model, ücretli/billing bağlı bir projede ücret doğurabilir.
             Uygulama projendeki faturalandırmayı doğrulayamaz. Gemini seçildiğinde
             soru ve yüklediğin dosyalardan seçilen içerik Google'a gider.
+            Ücretsiz katmanda Google bu verileri ürünlerini geliştirmek için kullanabilir.
           </p>
           <button type="button" className="gemini-cancel" onClick={() => setSettingsOpen(false)}>
             Kapat
@@ -194,7 +195,12 @@ export default function ChatInterface({
                   {msg.loading?.stage3 && <div className="stage-loading"><div className="spinner" />3. aşama: Başkan model ortak sonucu hazırlıyor…</div>}
                   {msg.stage3 && <Stage3 finalResponse={msg.stage3} />}
                   {!!msg.metadata?.selected_models?.length &&
-                    <p className="model-notice">Katılan modeller: {msg.metadata.selected_models.join(', ')}</p>}
+                    <p className="model-notice">İstenen modeller: {msg.metadata.selected_models.join(', ')}</p>}
+                  {!!msg.metadata?.unavailable_models?.length &&
+                    <p className="council-error">
+                      Yanıt alınamayan model: {msg.metadata.unavailable_models.join(', ')}.
+                      Yerel değerlendirme diğer modellerle sürdürüldü.
+                    </p>}
                 </div>
               )}
             </div>
