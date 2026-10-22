@@ -10,6 +10,7 @@ import json
 import asyncio
 
 from . import storage
+from .ollama import ollama_status
 from .council import run_full_council, generate_conversation_title, stage1_collect_responses, stage2_collect_rankings, stage3_synthesize_final, calculate_aggregate_rankings
 
 app = FastAPI(title="LLM Council API")
@@ -53,7 +54,13 @@ class Conversation(BaseModel):
 @app.get("/")
 async def root():
     """Health check endpoint."""
-    return {"status": "ok", "service": "LLM Council API"}
+    return {"status": "ok", "service": "LLM Council API", "provider": "local_ollama"}
+
+
+@app.get("/api/status")
+async def local_model_status():
+    """Show local Ollama connection and installed model selection."""
+    return await ollama_status()
 
 
 @app.get("/api/conversations", response_model=List[ConversationMetadata])
@@ -196,4 +203,4 @@ async def send_message_stream(conversation_id: str, request: SendMessageRequest)
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    uvicorn.run(app, host="127.0.0.1", port=8001)
