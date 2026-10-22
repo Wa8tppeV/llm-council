@@ -7,4 +7,5 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").rstrip(
 COUNCIL_MODELS = [m.strip() for m in os.getenv("OLLAMA_MODELS", "").split(",") if m.strip()]
 CHAIRMAN_MODEL = os.getenv("OLLAMA_CHAIRMAN_MODEL", "").strip()
 OLLAMA_MAX_OUTPUT_TOKENS = int(os.getenv("OLLAMA_MAX_OUTPUT_TOKENS", "768"))
+OLLAMA_NUM_CTX = int(os.getenv("OLLAMA_NUM_CTX", "6144"))
 DATA_DIR = "data/conversations"
