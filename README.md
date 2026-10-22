@@ -141,3 +141,49 @@ Arayüzü derlemek ve bağımlılıkları taramak:
 
 Birden fazla modelin uzlaşması teknik doğruluk garantisi değildir; özellikle
 statik, metraj, şartname ve mevzuatta kaynak veriler doğrulanmalıdır.
+
+
+## İsteğe bağlı Google Gemini (ücretsiz proje)
+
+Bu sürümde Ollama'nın yanında **Gemini 2.5 Flash** da tek tek sorulara
+katılabilir. **Varsayılan kapalıdır**, API anahtarı yoksa normal yerel konsey
+çalışmaya devam eder.
+
+1. https://aistudio.google.com/api-keys adresinde kendi Google hesabınızla
+   **Free Tier / ücretsiz katman** projesi oluşturun. Projede faturalandırma
+   bağlı olmadığını doğrulayın; ödeme veya ücretli katmana geçiş yapmayın.
+2. Yerel uygulamanın üstündeki **Gemini bağla** düğmesini açın.
+3. API anahtarını yalnızca bilgisayarınızdaki şifreli giriş alanına yapıştırın;
+   projenizin ücretsiz olduğunu onaylayıp **Kaydet** düğmesine basın.
+4. Belirli bir soruda Gemini'yi dahil etmek istiyorsanız sohbet alanındaki
+   **Gemini'yi de kat (Google'a veri gönderir)** kutusunu açın.
+5. Her soru tamamlandığında kutu kendiliğinden kapanır. Gemini API hatası veya
+   kota sınırında diğer yerel modellerle değerlendirme devam eder.
+
+### Önemli maliyet ve gizlilik sınırları
+
+- **Kullanıcının kontrolü olmadan bulut bağlantısı ve Gemini çağrısı yapılamaz.**
+- Kod yalnızca gemini-2.5-flash modeline izin verir; pahalı modellere
+  kendiliğinden geçmez, hata durumunda otomatik yeniden denemez.
+- Uygulama kendi tarafında **UTC gününe göre en fazla 12 Google API isteği**
+  gönderir. Bu, Google'ın kendi proje kotasının yerine geçmez.
+- **Faturalandırmaya bağlı bir Google projesindeki ücretsiz model adı,
+  ücret doğmayacağını garanti etmez.** Bu uygulama Google projenizde
+  faturalandırmanın kapalı olduğunu kendiliğinden doğrulayamaz.
+  Ücret oluşmasını önlemek için faturalandırmasız Free Tier proje kullanın.
+- Google Gemini kutusu açılırsa soru ve yüklediğiniz belgelerden seçilen
+  metin parçaları Google'a iletilir. Görseller Google'a doğrudan gönderilmez;
+  yerel Gemma modelinin çıkardığı açıklama gidebilir.
+- Gemini Free Tier içerikleri Google tarafından ürün geliştirme amacıyla
+  kullanılabilir. **Gizli müşteri projelerinde Gemini'yi seçmeyin; Ollama'yı
+  yerel modda kullanın.**
+- API anahtarı Windows proje klasöründeki git-ignored **.env** içinde kalır;
+  GitHub'a gönderilmez ve tarayıcıya geri okunmaz.
+- **Bağlantıyı kaldır** düğmesi uygulamanın .env içindeki anahtarı temizler.
+  Bu işlem Google hesabınızdaki anahtarı iptal etmez; kalıcı iptal için
+  ayrıca Google AI Studio'dan anahtarı silin.
+- ChatGPT aboneliği ve Claude web aboneliği bu projeye otomatik API erişimi
+  sağlamaz. OpenAI veya Anthropic ücretli API çağrıları eklenmemiştir.
+
+API anahtarı bilgisayarınızda yoksa konseyin mevcut ücretsiz yerel sürümü
+değişmeden çalışır.
