@@ -161,3 +161,27 @@
   background: #ccc;
   border-color: #ccc;
 }
+
+/* Turkish council additions */
+.council-header {display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 22px;border-bottom:1px solid #e8eaed;background:#fff;}
+.council-header strong{display:block;font-size:15px;color:#202733;}
+.council-header span{display:block;color:#75818e;font-size:11px;margin-top:2px;}
+.connection-status{font-size:12px;border-radius:20px;padding:6px 10px;background:#f6f7f8;color:#727b85;white-space:nowrap;}
+.connection-status.connected{color:#13745f;background:#e9f6f0;}
+.connection-status.disconnected{color:#a34336;background:#fff1ed;}
+.council-input{padding:15px 22px;}
+.council-input-main{display:flex;flex-direction:column;gap:8px;width:100%;min-width:0;}
+.council-input-main .message-input{min-height:74px;max-height:240px;width:100%;box-sizing:border-box;}
+.model-notice{color:#697384;font-size:11px;margin:0 0 4px;overflow-wrap:anywhere;}
+.attached-list{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin:6px 0;}
+.attached-chip{display:inline-flex;align-items:center;gap:6px;border-radius:7px;border:1px solid #dce5ec;background:#f4f8fa;padding:5px 8px;font-size:12px;color:#293e4d;max-width:100%;overflow-wrap:anywhere;}
+.attached-chip button{background:none;border:none;color:#77818c;cursor:pointer;font-size:17px;line-height:1;}
+.composer-bottom{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+.composer-bottom .send-button{margin-left:auto;align-self:center;padding:11px 18px;}
+.file-picker{font-weight:600;color:#285e8b;border:1px solid #cbdbe7;border-radius:8px;background:#fff;padding:10px 13px;cursor:pointer;font-size:13px;}
+.file-picker input{display:none;}
+.deep-check{display:inline-flex;align-items:center;gap:7px;color:#444d59;font-size:12px;cursor:pointer;}
+.deep-check input{accent-color:#347ac1;}
+.council-error{margin:0;color:#a6372a;background:#fff3ef;border:1px solid #f6d3cb;padding:7px 11px;border-radius:6px;font-size:12px;}
+.local-warning{color:#75808d;font-size:11px;margin:2px 0 0;}
+@media(max-width:760px){.council-header{padding:8px 10px;flex-wrap:wrap;}.council-input{padding:10px;}.composer-bottom .send-button{margin-left:0;}.user-message .message-content{max-width:95%;}}
