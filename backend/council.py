@@ -72,7 +72,7 @@ async def stage2_collect_rankings(
 
     # Build the ranking prompt
     responses_text = "\n\n".join([
-        f"Response {label}:\n{result['response']}"
+        f"Response {label}:\n{result['response'][:2800]}"
         for label, result in zip(labels, stage1_results)
     ])
 
@@ -145,12 +145,12 @@ async def stage3_synthesize_final(
     """
     # Build comprehensive context for chairman
     stage1_text = "\n\n".join([
-        f"Model: {result['model']}\nResponse: {result['response']}"
+        f"Model: {result['model']}\nResponse: {result['response'][:2200]}"
         for result in stage1_results
     ])
 
     stage2_text = "\n\n".join([
-        f"Model: {result['model']}\nRanking: {result['ranking']}"
+        f"Model: {result['model']}\nRanking: {result['ranking'][:1300]}"
         for result in stage2_results
     ])
 
