@@ -40,7 +40,7 @@ Create a `.env` file in the project root:
 OPENROUTER_API_KEY=sk-or-v1-...
 ```
 
-Get your API key at [openrouter.ai](https://openrouter.ai/). Make sure to purchase the credits you need, or sign up for automatic top up.
+Get a free API key at [openrouter.ai/keys](https://openrouter.ai/keys). **No credit purchase or automatic top-up is required for the default free models.** Free endpoints have request limits and availability may change. Do not commit your `.env` file (it is already ignored by `.gitignore`).
 
 ### 3. Configure Models (Optional)
 
@@ -48,14 +48,42 @@ Edit `backend/config.py` to customize the council:
 
 ```python
 COUNCIL_MODELS = [
-    "openai/gpt-5.1",
-    "google/gemini-3-pro-preview",
-    "anthropic/claude-sonnet-4.5",
-    "x-ai/grok-4",
+    "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "nvidia/nemotron-3-super-120b-a12b:free",
+    "cohere/north-mini-code:free",
 ]
 
-CHAIRMAN_MODEL = "google/gemini-3-pro-preview"
+CHAIRMAN_MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free"
 ```
+
+
+### Free-only mode
+
+This fork uses only OpenRouter model IDs ending in `:free` for **all** requests, including automatic conversation titles. The API client blocks calls to non-free model IDs, preventing accidental paid-model usage. A free API key is still required; **OpenRouter free-tier limits apply** (currently 50 requests per day, subject to change). Each council prompt normally sends multiple requests, so the daily quota may be used up after a few prompts. Free endpoints may log the content of your requests; **do not send confidential project documents or personal information**.
+
+**Windows PowerShell:** After installing Git, Node.js and [uv](https://docs.astral.sh/uv/), run from the cloned repository:
+
+```powershell
+uv sync
+cd frontend
+npm.cmd install
+cd ..
+```
+
+Create `.env` as described above. Open two PowerShell windows in the project directory:
+
+```powershell
+# Window 1
+uv run python -m backend.main
+```
+
+```powershell
+# Window 2
+cd frontend
+npm.cmd run dev
+```
+
+Browse to http://localhost:5173. This is a local web app, not a native ChatGPT plugin.
 
 ## Running the Application
 
