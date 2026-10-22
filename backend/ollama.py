@@ -2,7 +2,7 @@
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 import httpx
-from .config import OLLAMA_BASE_URL, COUNCIL_MODELS, OLLAMA_MAX_OUTPUT_TOKENS
+from .config import OLLAMA_BASE_URL, COUNCIL_MODELS, OLLAMA_MAX_OUTPUT_TOKENS, OLLAMA_NUM_CTX
 
 def _loopback_only():
     if urlparse(OLLAMA_BASE_URL).hostname not in ("localhost", "127.0.0.1", "::1"):
@@ -53,7 +53,7 @@ async def query_model(model: str, messages: List[Dict[str, str]], timeout: float
         print(f"Blocked non-local model: {model}")
         return None
     payload = {"model": model, "messages": messages, "stream": False,
-               "think": False, "options": {"num_predict": OLLAMA_MAX_OUTPUT_TOKENS}}
+               "think": False, "options": {"num_predict": OLLAMA_MAX_OUTPUT_TOKENS, "num_ctx": OLLAMA_NUM_CTX}}
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(timeout, connect=10.0)) as client:
             response = await client.post(f"{OLLAMA_BASE_URL}/api/chat", json=payload)
