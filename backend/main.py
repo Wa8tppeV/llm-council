@@ -148,11 +148,16 @@ async def send_message(conversation_id: str, request: SendMessageRequest):
     if len(c["messages"]) == 1:
         storage.update_conversation_title(conversation_id, request.content[:48])
     stage1 = await stage1_collect_responses(question, models)
-    stage2, labels = await stage2_collect_rankings(question, stage1, models)
+    if not stage1:
+        raise HTTPException(status_code=503, detail="Yerel modellerden yanit alinamadi.")
+    responded = {x["model"] for x in stage1}
+    stage2_models = [model for model in models if model in responded]
+    stage2, labels = await stage2_collect_rankings(question, stage1, stage2_models)
     stage3 = await stage3_synthesize_final(question, stage1, stage2)
     metadata = {"label_to_model": labels,
                 "aggregate_rankings": calculate_aggregate_rankings(stage2, labels),
-                "selected_models": models}
+                "selected_models": models,
+                "unavailable_models": [m for m in models if m not in responded]}
     storage.add_assistant_message(conversation_id, stage1, stage2, stage3, metadata)
     return {"stage1": stage1, "stage2": stage2, "stage3": stage3, "metadata": metadata}
 
@@ -186,10 +191,13 @@ async def send_message_stream(conversation_id: str, request: SendMessageRequest)
                 return
             yield emit("stage1_complete", data=stage1)
             yield emit("stage2_start")
-            stage2, labels = await stage2_collect_rankings(question, stage1, models)
+            responded = {x["model"] for x in stage1}
+            stage2_models = [model for model in models if model in responded]
+            stage2, labels = await stage2_collect_rankings(question, stage1, stage2_models)
             rankings = calculate_aggregate_rankings(stage2, labels)
             metadata = {"label_to_model": labels,
-                        "aggregate_rankings": rankings, "selected_models": models}
+                        "aggregate_rankings": rankings, "selected_models": models,
+                        "unavailable_models": [m for m in models if m not in responded]}
             yield emit("stage2_complete", data=stage2, metadata=metadata)
             yield emit("stage3_start")
             stage3 = await stage3_synthesize_final(question, stage1, stage2)
