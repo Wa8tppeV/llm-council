@@ -4,7 +4,7 @@ import json
 import uuid
 from typing import Any, Dict, List
 
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from . import storage
 from .attachments import save_upload, context_for_question
 from .ollama import ollama_status
+from . import gemini as gemini_provider
 from .council import (
     generate_conversation_title, stage1_collect_responses,
     stage2_collect_rankings, stage3_synthesize_final, calculate_aggregate_rankings,
@@ -37,6 +38,12 @@ class SendMessageRequest(BaseModel):
     content: str = Field(min_length=1, max_length=12000)
     file_ids: List[str] = Field(default_factory=list, max_length=6)
     deep: bool = False
+    gemini: bool = False
+
+
+class GeminiSettingsRequest(BaseModel):
+    api_key: str = Field(min_length=20, max_length=300)
+    free_tier_confirmed: bool = False
 
 
 class ConversationMetadata(BaseModel):
@@ -60,7 +67,32 @@ async def root():
 
 @app.get("/api/status")
 async def local_model_status():
-    return await ollama_status()
+    state = await ollama_status()
+    state["gemini"] = gemini_provider.status()
+    return state
+
+
+def _require_local_origin(request: Request) -> None:
+    # Browser-based changes to secrets must originate in the actual local UI.
+    allowed = {"http://127.0.0.1:5173", "http://localhost:5173",
+               "http://127.0.0.1:3000", "http://localhost:3000"}
+    if request.headers.get("origin") not in allowed:
+        raise HTTPException(status_code=403, detail="Yalnizca yerel uygulama ayarlari degistirebilir.")
+
+
+@app.post("/api/gemini/configure")
+async def configure_gemini(request: Request, settings: GeminiSettingsRequest):
+    _require_local_origin(request)
+    try:
+        return gemini_provider.configure(settings.api_key, settings.free_tier_confirmed)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/gemini/disconnect")
+async def disconnect_gemini(request: Request):
+    _require_local_origin(request)
+    return gemini_provider.disconnect()
 
 
 @app.get("/api/conversations", response_model=List[ConversationMetadata])
@@ -106,7 +138,9 @@ def prepare(conversation_id: str, request: SendMessageRequest):
 @app.post("/api/conversations/{conversation_id}/message")
 async def send_message(conversation_id: str, request: SendMessageRequest):
     question, files = prepare(conversation_id, request)
-    models = await choose_models(request.deep)
+    if request.gemini and not gemini_provider.enabled():
+        raise HTTPException(status_code=409, detail="Gemini icin Free Tier API anahtari baglanmamis.")
+    models = await choose_models(request.deep, request.gemini)
     if not models:
         raise HTTPException(status_code=503, detail="Ollama model bulunamadi.")
     storage.add_user_message(conversation_id, request.content, files)
@@ -127,7 +161,9 @@ async def send_message(conversation_id: str, request: SendMessageRequest):
 async def send_message_stream(conversation_id: str, request: SendMessageRequest):
     # Validate all files before streaming, so the browser can show HTTP errors.
     question, files = prepare(conversation_id, request)
-    models = await choose_models(request.deep)
+    if request.gemini and not gemini_provider.enabled():
+        raise HTTPException(status_code=409, detail="Gemini icin Free Tier API anahtari baglanmamis.")
+    models = await choose_models(request.deep, request.gemini)
     if not models:
         raise HTTPException(status_code=503, detail="Ollama model bulunamadi")
 
